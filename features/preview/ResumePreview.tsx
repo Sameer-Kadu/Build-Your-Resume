@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useResume } from '@/context/resume-context';
 
 export default function ResumePreview() {
@@ -14,16 +15,38 @@ export default function ResumePreview() {
     education.length > 0 || 
     projects.length > 0;
 
+  /**
+   * Simple function to render formatted text:
+   * **bold** -> <strong>bold</strong>
+   * ==highlight== -> <mark>highlight</mark>
+   */
+  const renderFormattedText = (text: string) => {
+    if (!text) return null;
+    
+    // Use regex to split and map parts
+    const parts = text.split(/(\*\*.*?\*\*|==.*?==)/g);
+    
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={index}>{part.slice(2, -2)}</strong>;
+      }
+      if (part.startsWith('==') && part.endsWith('==')) {
+        return <mark key={index} className="bg-yellow-200 px-0.5 rounded">{part.slice(2, -2)}</mark>;
+      }
+      return part;
+    });
+  };
+
   if (!hasContent) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 border-2 border-dashed border-gray-100 rounded-xl">
-        <p className="text-center italic text-sm">Start filling out the form to see your resume preview in the style of Sameer Kadu</p>
+      <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 border-2 border-dashed border-gray-100 rounded-xl font-calibri">
+        <p className="text-center italic text-sm">Start filling out the form to see your resume preview in your style</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white shadow-lg border border-gray-200 p-[0.5in] md:p-[0.75in] font-serif text-[#000000] min-h-[11in] w-full max-w-[8.5in] mx-auto overflow-hidden text-[11pt] leading-snug">
+    <div className="bg-white shadow-lg border border-gray-200 p-[0.5in] md:p-[0.75in] font-calibri text-[#000000] min-h-[11in] w-full max-w-[8.5in] mx-auto overflow-hidden text-[11pt] leading-snug">
       {/* Header - Left Aligned like the PDF */}
       <header className="mb-6">
         <h1 className="text-[24pt] font-bold text-gray-900 mb-2">{personalInfo.fullName || 'Your Name'}</h1>
@@ -55,7 +78,7 @@ export default function ResumePreview() {
       {summary && (
         <section className="mb-5">
           <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">Professional Summary</h2>
-          <p className="text-justify leading-relaxed">{summary}</p>
+          <p className="text-justify leading-relaxed">{renderFormattedText(summary)}</p>
         </section>
       )}
 
@@ -85,7 +108,7 @@ export default function ResumePreview() {
                 </div>
                 <ul className="list-disc list-outside ml-5 space-y-1">
                   {exp.description.map((bullet, idx) => (
-                    <li key={idx} className="pl-1">{bullet}</li>
+                    <li key={idx} className="pl-1">{renderFormattedText(bullet)}</li>
                   ))}
                 </ul>
               </div>
@@ -105,7 +128,7 @@ export default function ResumePreview() {
                 {project.role && <div className="italic text-[10pt] mb-1">Role: {project.role}</div>}
                 <ul className="list-disc list-outside ml-5 space-y-1">
                   {project.description.map((bullet, idx) => (
-                    <li key={idx} className="pl-1">{bullet}</li>
+                    <li key={idx} className="pl-1">{renderFormattedText(bullet)}</li>
                   ))}
                 </ul>
                 <div className="text-[10pt] mt-1">

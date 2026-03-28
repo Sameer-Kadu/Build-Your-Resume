@@ -8,9 +8,15 @@
   --background-end-rgb: 255, 255, 255;
 }
 
+/* Calibri Font Stack */
+.font-calibri {
+  font-family: Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif;
+}
+
 body {
   color: rgb(var(--foreground-rgb));
   background: white;
+  font-family: Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif;
 }
 
 @media print {
