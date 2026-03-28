@@ -40,8 +40,20 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (id) {
             setFileId(id);
             const content = await fetchResumeFileContent(user.access_token, id);
-            setResumeData(content);
-            setLastSynced(content.updatedAt);
+            // Merge with initialResumeData to ensure all fields exist (for backward compatibility or partial data)
+            const mergedData = {
+              ...initialResumeData,
+              ...content,
+              personalInfo: { ...initialResumeData.personalInfo, ...(content.personalInfo || {}) },
+              additionalInfo: { ...initialResumeData.additionalInfo, ...(content.additionalInfo || {}) },
+              experience: content.experience || [],
+              education: content.education || [],
+              projects: content.projects || [],
+              skills: content.skills || [],
+              certifications: content.certifications || [],
+            };
+            setResumeData(mergedData);
+            setLastSynced(mergedData.updatedAt);
           } else {
             // If file not found, we don't create it yet to avoid empty file creation
             // We'll let the auto-save handle the first creation or create it manually if needed

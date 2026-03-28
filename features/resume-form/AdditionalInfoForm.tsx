@@ -7,30 +7,33 @@ import { Plus, Trash2, Info, Award, Globe } from 'lucide-react';
 export default function AdditionalInfoForm() {
   const { resumeData, updateResumeData } = useResume();
 
+  const additionalInfo = resumeData.additionalInfo || { languages: [], workAuthorization: '', noticePeriod: '' };
+  const certifications = resumeData.certifications || [];
+
   const updateAdditional = (field: string, value: any) => {
     updateResumeData({
-      additionalInfo: { ...resumeData.additionalInfo, [field]: value }
+      additionalInfo: { ...additionalInfo, [field]: value }
     });
   };
 
   const addCertification = () => {
-    updateResumeData({ certifications: [...resumeData.certifications, ''] });
+    updateResumeData({ certifications: [...certifications, ''] });
   };
 
   const updateCertification = (index: number, value: string) => {
-    const newCerts = [...resumeData.certifications];
+    const newCerts = [...certifications];
     newCerts[index] = value;
     updateResumeData({ certifications: newCerts });
   };
 
   const removeCertification = (index: number) => {
     updateResumeData({
-      certifications: resumeData.certifications.filter((_, i) => i !== index)
+      certifications: certifications.filter((_, i) => i !== index)
     });
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 font-calibri">
       {/* Certifications */}
       <div className="space-y-4">
         <div className="flex justify-between items-center text-sm font-semibold text-gray-700 uppercase tracking-wider">
@@ -47,7 +50,7 @@ export default function AdditionalInfoForm() {
         </div>
         
         <div className="space-y-3">
-          {resumeData.certifications.map((cert, index) => (
+          {certifications.map((cert, index) => (
             <div key={index} className="flex gap-2">
               <input
                 type="text"
@@ -64,7 +67,7 @@ export default function AdditionalInfoForm() {
               </button>
             </div>
           ))}
-          {resumeData.certifications.length === 0 && (
+          {certifications.length === 0 && (
             <p className="text-xs text-gray-400 italic">No certifications added.</p>
           )}
         </div>
@@ -84,7 +87,7 @@ export default function AdditionalInfoForm() {
             </label>
             <input
               type="text"
-              value={resumeData.additionalInfo.languages.join(', ')}
+              value={(additionalInfo.languages || []).join(', ')}
               onChange={(e) => updateAdditional('languages', e.target.value.split(',').map(s => s.trim()))}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-500"
               placeholder="e.g. English, Hindi, Marathi"
@@ -95,7 +98,7 @@ export default function AdditionalInfoForm() {
             <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Work Authorization</label>
             <input
               type="text"
-              value={resumeData.additionalInfo.workAuthorization}
+              value={additionalInfo.workAuthorization || ''}
               onChange={(e) => updateAdditional('workAuthorization', e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-500"
               placeholder="e.g. India"
@@ -106,7 +109,7 @@ export default function AdditionalInfoForm() {
             <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Notice Period</label>
             <input
               type="text"
-              value={resumeData.additionalInfo.noticePeriod}
+              value={additionalInfo.noticePeriod || ''}
               onChange={(e) => updateAdditional('noticePeriod', e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-500"
               placeholder="e.g. Immediate / 30 Days"
