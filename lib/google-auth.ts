@@ -3,6 +3,24 @@
  * This handles the client-side Google OAuth 2.0 flow (Token Model).
  */
 
+declare global {
+  interface Window {
+    google: {
+      accounts: {
+        oauth2: {
+          initTokenClient: (config: {
+            client_id: string;
+            scope: string;
+            callback: (tokenResponse: any) => void;
+          }) => any;
+          requestAccessToken: (options: { prompt: string }) => void;
+          revoke: (accessToken: string, callback: () => void) => void;
+        };
+      };
+    };
+  }
+}
+
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
 
