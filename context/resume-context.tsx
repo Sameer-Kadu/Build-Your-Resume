@@ -49,7 +49,9 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               experience: content.experience || [],
               education: content.education || [],
               projects: content.projects || [],
-              skills: content.skills || [],
+              skills: Array.isArray(content.skills) 
+                ? content.skills.map((s: any) => typeof s === 'string' ? { id: Math.random().toString(), category: 'General', items: [s] } : s)
+                : initialResumeData.skills,
               certifications: content.certifications || [],
             };
             setResumeData(mergedData);

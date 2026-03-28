@@ -87,7 +87,21 @@ export default function ResumePreview() {
         <section className="mb-5">
           <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">Core Technical Skills</h2>
           <div className="space-y-1">
-             <p><span className="font-bold">Skills:</span> {skills.join(', ')}</p>
+            {skills.map((group, idx) => {
+              // Handle old data structure (string[]) vs new (SkillGroup[])
+              if (typeof group === 'string') {
+                return <p key={idx}><span className="font-bold">Skill:</span> {group}</p>;
+              }
+              
+              if (group.items && group.items.length > 0) {
+                return (
+                  <p key={group.id || idx}>
+                    <span className="font-bold">{group.category}:</span> {group.items.join(', ')}
+                  </p>
+                );
+              }
+              return null;
+            })}
           </div>
         </section>
       )}

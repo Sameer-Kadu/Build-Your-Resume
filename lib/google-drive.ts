@@ -5,6 +5,12 @@
 
 const RESUME_FILENAME = 'resume-data.json';
 
+export interface SkillGroup {
+  id: string;
+  category: string;
+  items: string[];
+}
+
 export interface ResumeData {
   personalInfo: {
     fullName: string;
@@ -16,7 +22,7 @@ export interface ResumeData {
     location: string;
   };
   summary: string;
-  skills: string[];
+  skills: SkillGroup[];
   experience: {
     id: string;
     role: string;
@@ -65,7 +71,11 @@ export const initialResumeData: ResumeData = {
     location: '',
   },
   summary: '',
-  skills: [],
+  skills: [
+    { id: '1', category: 'Programming Languages', items: [] },
+    { id: '2', category: 'Frameworks/Libraries', items: [] },
+    { id: '3', category: 'Tools/Technologies', items: [] }
+  ],
   experience: [],
   education: [],
   projects: [],
