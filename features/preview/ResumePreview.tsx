@@ -33,10 +33,20 @@ export default function ResumePreview() {
             {personalInfo.email && <a href={`mailto:${personalInfo.email}`} className="text-blue-600 hover:underline">{personalInfo.email}</a>}
             {personalInfo.phone && <span>| {personalInfo.phone}</span>}
           </div>
-          <div className="flex gap-3 text-blue-600">
+          <div className="flex gap-2 text-blue-600">
             {personalInfo.website && <a href={personalInfo.website} className="hover:underline">Portfolio</a>}
-            {personalInfo.linkedin && <a href={personalInfo.linkedin} className="hover:underline">LinkedIn</a>}
-            {personalInfo.github && <a href={personalInfo.github} className="hover:underline">GitHub</a>}
+            {personalInfo.linkedin && (
+              <>
+                {personalInfo.website && <span className="text-gray-400">|</span>}
+                <a href={personalInfo.linkedin} className="hover:underline">LinkedIn</a>
+              </>
+            )}
+            {personalInfo.github && (
+              <>
+                {(personalInfo.website || personalInfo.linkedin) && <span className="text-gray-400">|</span>}
+                <a href={personalInfo.github} className="hover:underline">GitHub</a>
+              </>
+            )}
           </div>
         </div>
       </header>
