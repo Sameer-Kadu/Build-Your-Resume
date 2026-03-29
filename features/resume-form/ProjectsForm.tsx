@@ -52,14 +52,14 @@ export default function ProjectsForm() {
 
   const removeBullet = (projectId: string, index: number) => {
     const project = resumeData.projects.find((p) => p.id === projectId);
-    if (project && project.description.length > 1) {
+    if (project) {
       const newBullets = project.description.filter((_, i) => i !== index);
-      updateProject(projectId, 'description', newBullets);
+      updateProject(projectId, 'description', newBullets.length > 0 ? newBullets : ['']);
     }
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 font-calibri">
       <div className="flex justify-between items-center">
         <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider flex items-center gap-2">
           <Briefcase size={18} className="text-blue-600" />
