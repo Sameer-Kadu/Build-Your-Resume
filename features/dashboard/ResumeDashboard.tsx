@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { useResume } from '@/context/resume-context';
-import { Plus, Trash2, Copy, FileText, ChevronRight, LayoutDashboard, X, Edit2 } from 'lucide-react';
+import { Plus, Trash2, Copy, FileText, ChevronRight, LayoutDashboard, X, Edit2, Zap } from 'lucide-react';
+import ApplyFasterModal from '../apply-faster/ApplyFasterModal';
 
 const PREDEFINED_ROLES = ['SDE', 'SDET', 'DevOps', 'AI/ML', 'Data Analyst'];
 
@@ -18,6 +19,7 @@ export default function ResumeDashboard() {
   
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState<{ id: string, role: string } | null>(null);
+  const [applyingResume, setApplyingResume] = useState<{ id: string, role: string } | null>(null);
   const [newRole, setNewRole] = useState('');
   const [isCustomRole, setIsCustomRole] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -104,18 +106,27 @@ export default function ResumeDashboard() {
               <h3 className="font-bold text-gray-900 truncate pr-8">{resume.role}</h3>
               <p className="text-xs text-gray-500 mt-1">Ready for application</p>
 
-              <button
-                onClick={() => switchResume(resume.id)}
-                disabled={activeResumeId === resume.id}
-                className={`mt-4 w-full py-2 rounded-lg text-sm font-bold transition flex items-center justify-center gap-1 ${
-                  activeResumeId === resume.id
-                    ? 'bg-blue-600 text-white cursor-default'
-                    : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                {activeResumeId === resume.id ? 'Active' : 'Switch to this'}
-                {activeResumeId !== resume.id && <ChevronRight size={14} />}
-              </button>
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={() => switchResume(resume.id)}
+                  disabled={activeResumeId === resume.id}
+                  className={`flex-1 py-2 rounded-lg text-sm font-bold transition flex items-center justify-center gap-1 ${
+                    activeResumeId === resume.id
+                      ? 'bg-blue-600 text-white cursor-default'
+                      : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {activeResumeId === resume.id ? 'Active' : 'Switch'}
+                  {activeResumeId !== resume.id && <ChevronRight size={14} />}
+                </button>
+                <button
+                  onClick={() => setApplyingResume({ id: resume.id, role: resume.role })}
+                  className="px-3 py-2 rounded-lg border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center group/btn"
+                  title="Apply Faster"
+                >
+                  <Zap size={16} className="fill-current group-hover/btn:animate-pulse" />
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -285,6 +296,15 @@ export default function ResumeDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Apply Faster Modal */}
+      {applyingResume && (
+        <ApplyFasterModal
+          resumeId={applyingResume.id}
+          role={applyingResume.role}
+          onClose={() => setApplyingResume(null)}
+        />
       )}
     </div>
   );
