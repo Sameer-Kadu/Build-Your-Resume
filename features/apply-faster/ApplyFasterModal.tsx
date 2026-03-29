@@ -46,7 +46,14 @@ export default function ApplyFasterModal({ resumeId, role, onClose }: ApplyFaste
 
     // 3. Trigger Print (which is how the app generates PDF currently)
     setMode('manual');
+    
+    // Briefly hide the modal to ensure it doesn't appear in the print capture
+    const modalElement = document.getElementById('apply-faster-modal');
+    if (modalElement) modalElement.style.display = 'none';
+    
     window.print();
+    
+    if (modalElement) modalElement.style.display = 'flex';
     
     // 4. Restore original title and open Platform
     document.title = originalTitle;
@@ -70,7 +77,7 @@ export default function ApplyFasterModal({ resumeId, role, onClose }: ApplyFaste
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 font-calibri">
+    <div id="apply-faster-modal" className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 font-calibri print:hidden">
       <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl animate-in zoom-in duration-200 overflow-hidden">
         {/* Header */}
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
