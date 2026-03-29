@@ -1,11 +1,50 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useResume } from '@/context/resume-context';
 
 export default function ResumePreview() {
-  const { resumeData } = useResume();
+  const { resumeData, isExporting, triggerExport, resumes, activeResumeId } = useResume();
   const { personalInfo, summary, skills, experience, education, projects, certifications, additionalInfo } = resumeData;
+  const resumeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isExporting && resumeRef.current) {
+      const exportToPDF = async () => {
+        // Dynamic import to avoid SSR issues
+        const html2pdf = (await import('html2pdf.js')).default;
+        
+        const element = resumeRef.current;
+        const role = resumes.find(r => r.id === activeResumeId)?.role || 'Resume';
+        const fileName = `${personalInfo.fullName || 'User'}_${role}_Resume.pdf`.replace(/\s+/g, '_');
+        
+        const opt = {
+          margin: 0,
+          filename: fileName,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { 
+            scale: 2, 
+            useCORS: true,
+            letterRendering: true,
+            logging: false
+          },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        try {
+          // Add a small delay to ensure rendering is complete
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await html2pdf().set(opt).from(element).save();
+        } catch (error) {
+          console.error('PDF generation error:', error);
+        } finally {
+          triggerExport(false);
+        }
+      };
+
+      exportToPDF();
+    }
+  }, [isExporting, resumeData, personalInfo.fullName, resumes, activeResumeId, triggerExport]);
 
   const hasContent = 
     personalInfo.fullName || 
@@ -46,7 +85,7 @@ export default function ResumePreview() {
   }
 
   return (
-    <div className="resume-preview-container bg-white shadow-lg border border-gray-200 p-[0.5in] md:p-[0.75in] font-calibri text-[#000000] min-h-[11in] w-full max-w-[8.5in] mx-auto overflow-hidden text-[11pt] leading-snug">
+    <div ref={resumeRef} className="resume-preview-container bg-white shadow-lg border border-gray-200 p-[0.5in] md:p-[0.75in] font-calibri text-[#000000] min-h-[11in] w-full max-w-[8.5in] mx-auto overflow-hidden text-[11pt] leading-snug">
       {/* Header - Left Aligned like the PDF */}
       <header className="mb-6">
         <h1 className="text-[24pt] font-bold text-gray-900 mb-2">{personalInfo.fullName || 'Your Name'}</h1>

@@ -21,7 +21,9 @@ interface ResumeContextType {
   lastSynced: string | null;
   resumes: ResumeMetadata[];
   activeResumeId: string | null;
+  isExporting: boolean;
   switchResume: (id: string) => Promise<void>;
+  triggerExport: (exporting: boolean) => void;
   createNewResume: (role: string, copyFromId?: string) => Promise<void>;
   updateResumeRole: (id: string, newRole: string) => Promise<void>;
   deleteExistingResume: (id: string) => Promise<void>;
@@ -35,6 +37,7 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [resumeData, setResumeData] = useState<ResumeData>(initialResumeData);
   const [resumes, setResumes] = useState<ResumeMetadata[]>([]);
   const [activeResumeId, setActiveResumeId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
@@ -51,6 +54,10 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }
     return [];
+  };
+
+  const triggerExport = (exporting: boolean) => {
+    setIsExporting(exporting);
   };
 
   // Load list of resumes and initial active resume on login
@@ -227,7 +234,9 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         lastSynced,
         resumes,
         activeResumeId,
+        isExporting,
         switchResume,
+        triggerExport,
         createNewResume,
         updateResumeRole,
         deleteExistingResume,

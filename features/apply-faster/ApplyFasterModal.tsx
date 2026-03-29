@@ -19,7 +19,7 @@ const PLATFORMS = [
 ];
 
 export default function ApplyFasterModal({ resumeId, role, onClose }: ApplyFasterModalProps) {
-  const { resumeData, switchResume } = useResume();
+  const { resumeData, switchResume, triggerExport } = useResume();
   const [selectedPlatform, setSelectedPlatform] = useState(PLATFORMS[0]);
   const [isExtensionInstalled, setIsExtensionInstalled] = useState(false);
   const [mode, setMode] = useState<'selection' | 'manual' | 'automated'>('selection');
@@ -44,22 +44,15 @@ export default function ApplyFasterModal({ resumeId, role, onClose }: ApplyFaste
     const safeRole = role.replace(/\s+/g, '_');
     document.title = `${safeUserName}_${safeRole}_Resume`;
 
-    // 3. Trigger Print (which is how the app generates PDF currently)
+    // 3. Trigger Export state which will handle redirection and PDF generation
+    triggerExport(true);
     setMode('manual');
     
-    // Briefly hide the modal to ensure it doesn't appear in the print capture
-    const modalElement = document.getElementById('apply-faster-modal');
-    if (modalElement) modalElement.style.display = 'none';
-    
-    window.print();
-    
-    if (modalElement) modalElement.style.display = 'flex';
-    
     // 4. Restore original title and open Platform
-    document.title = originalTitle;
     setTimeout(() => {
+      document.title = originalTitle;
       window.open(selectedPlatform.url, '_blank');
-    }, 1000);
+    }, 2000);
   };
 
   const handleAutomatedApply = async () => {

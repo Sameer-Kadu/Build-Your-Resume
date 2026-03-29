@@ -7,23 +7,22 @@ import ResumeDashboard from '@/features/dashboard/ResumeDashboard';
 import { useAuth } from '@/context/auth-context';
 import { useResume } from '@/context/resume-context';
 import { Printer, LayoutDashboard, FileEdit } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
-  const { resumeData, isSyncing, lastSynced, resumes, activeResumeId } = useResume();
+  const { resumeData, isSyncing, lastSynced, resumes, activeResumeId, isExporting, triggerExport } = useResume();
   const [view, setView] = useState<'dashboard' | 'editor'>('dashboard');
 
+  // Automatically switch to editor view if an export is triggered
+  useEffect(() => {
+    if (isExporting && view !== 'editor') {
+      setView('editor');
+    }
+  }, [isExporting, view]);
+
   const handlePrint = () => {
-    const originalTitle = document.title;
-    const userName = resumeData?.personalInfo?.fullName || 'User';
-    const role = resumes.find(r => r.id === activeResumeId)?.role || 'Resume';
-    const safeUserName = userName.replace(/\s+/g, '_');
-    const safeRole = role.replace(/\s+/g, '_');
-    
-    document.title = `${safeUserName}_${safeRole}_Resume`;
-    window.print();
-    document.title = originalTitle;
+    triggerExport(true);
   };
 
   const activeResume = resumes.find(r => r.id === activeResumeId);
