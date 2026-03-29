@@ -72,9 +72,11 @@ export const initialResumeData: ResumeData = {
   },
   summary: '',
   skills: [
-    { id: '1', category: 'Programming Languages', items: [] },
-    { id: '2', category: 'Frameworks/Libraries', items: [] },
-    { id: '3', category: 'Tools/Technologies', items: [] }
+    { id: '1', category: 'Languages', items: ['Java', 'C', 'C++', 'Python', 'C#'] },
+    { id: '2', category: 'Frameworks', items: ['Spring Boot', 'React'] },
+    { id: '3', category: 'Testing', items: ['Selenium', 'Playwright', 'JUnit'] },
+    { id: '4', category: 'Tools & Platforms', items: ['Git', 'Docker', 'CI/CD', 'Postman'] },
+    { id: '5', category: 'Databases', items: ['MySQL', 'Oracle', 'PostgreSQL'] }
   ],
   experience: [],
   education: [],
