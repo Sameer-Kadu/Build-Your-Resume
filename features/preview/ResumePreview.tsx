@@ -7,14 +7,19 @@ export default function ResumePreview() {
   const { resumeData, isExporting, triggerExport, resumes, activeResumeId } = useResume();
   const { personalInfo, summary, skills, experience, education, projects, certifications, additionalInfo } = resumeData;
   const resumeRef = useRef<HTMLDivElement>(null);
+  const processingExport = useRef(false);
 
   useEffect(() => {
-    if (isExporting && resumeRef.current) {
+    if (isExporting && resumeRef.current && !processingExport.current) {
+      processingExport.current = true;
+      
       const exportToPDF = async () => {
         // Dynamic import to avoid SSR issues
         const html2pdf = (await import('html2pdf.js')).default;
         
         const element = resumeRef.current;
+        if (!element) return;
+
         const role = resumes.find(r => r.id === activeResumeId)?.role || 'Resume';
         const fileName = `${personalInfo.fullName || 'User'}_${role}_Resume.pdf`.replace(/\s+/g, '_');
         
@@ -33,18 +38,19 @@ export default function ResumePreview() {
 
         try {
           // Add a small delay to ensure rendering is complete
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 800));
           await html2pdf().set(opt).from(element).save();
         } catch (error) {
           console.error('PDF generation error:', error);
         } finally {
           triggerExport(false);
+          processingExport.current = false;
         }
       };
 
       exportToPDF();
     }
-  }, [isExporting, resumeData, personalInfo.fullName, resumes, activeResumeId, triggerExport]);
+  }, [isExporting, triggerExport]); // Only depend on isExporting and triggerExport
 
   const hasContent = 
     personalInfo.fullName || 
