@@ -5,10 +5,12 @@ import { useAuth } from './auth-context';
 import {
   ResumeData,
   initialResumeData,
-  findResumeFile,
+  ResumeMetadata,
+  findResumeFiles,
   fetchResumeFileContent,
   createResumeFile,
   updateResumeFile,
+  deleteResumeFile,
 } from '@/lib/google-drive';
 
 interface ResumeContextType {
@@ -16,6 +18,12 @@ interface ResumeContextType {
   updateResumeData: (data: Partial<ResumeData>) => void;
   isSyncing: boolean;
   lastSynced: string | null;
+  resumes: ResumeMetadata[];
+  activeResumeId: string | null;
+  switchResume: (id: string) => Promise<void>;
+  createNewResume: (role: string, copyFromId?: string) => Promise<void>;
+  deleteExistingResume: (id: string) => Promise<void>;
+  refreshResumes: () => Promise<ResumeMetadata[]>;
 }
 
 const ResumeContext = createContext<ResumeContextType | undefined>(undefined);
@@ -23,46 +31,48 @@ const ResumeContext = createContext<ResumeContextType | undefined>(undefined);
 export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const [resumeData, setResumeData] = useState<ResumeData>(initialResumeData);
-  const [fileId, setFileId] = useState<string | null>(null);
+  const [resumes, setResumes] = useState<ResumeMetadata[]>([]);
+  const [activeResumeId, setActiveResumeId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load data from Google Drive on login
+  const refreshResumes = async () => {
+    if (isAuthenticated && user?.access_token) {
+      try {
+        const list = await findResumeFiles(user.access_token);
+        setResumes(list);
+        return list;
+      } catch (err) {
+        console.error('Error refreshing resumes:', err);
+      }
+    }
+    return [];
+  };
+
+  // Load list of resumes and initial active resume on login
   useEffect(() => {
-    const loadData = async () => {
+    const loadInitialData = async () => {
       if (isAuthenticated && user?.access_token) {
         setIsSyncing(true);
         setIsFirstLoad(true);
         try {
-          const id = await findResumeFile(user.access_token);
-          if (id) {
-            setFileId(id);
-            const content = await fetchResumeFileContent(user.access_token, id);
-            // Merge with initialResumeData to ensure all fields exist (for backward compatibility or partial data)
-            const mergedData = {
-              ...initialResumeData,
-              ...content,
-              personalInfo: { ...initialResumeData.personalInfo, ...(content.personalInfo || {}) },
-              additionalInfo: { ...initialResumeData.additionalInfo, ...(content.additionalInfo || {}) },
-              experience: content.experience || [],
-              education: content.education || [],
-              projects: content.projects || [],
-              skills: Array.isArray(content.skills) 
-                ? content.skills.map((s: any) => typeof s === 'string' ? { id: Math.random().toString(), category: 'General', items: [s] } : s)
-                : initialResumeData.skills,
-              certifications: content.certifications || [],
-            };
-            setResumeData(mergedData);
-            setLastSynced(mergedData.updatedAt);
+          const list = await refreshResumes();
+          if (list.length > 0) {
+            // Load the first resume or a previously saved active ID (if we had persistence for that)
+            const firstResume = list[0];
+            setActiveResumeId(firstResume.id);
+            const content = await fetchResumeFileContent(user.access_token, firstResume.id);
+            setResumeData(sanitizeResumeData(content));
+            setLastSynced(content.updatedAt || new Date().toISOString());
           } else {
-            // If file not found, we don't create it yet to avoid empty file creation
-            // We'll let the auto-save handle the first creation or create it manually if needed
-            setFileId(null); 
+            // No resumes found, keep initial empty data
+            setActiveResumeId(null);
+            setResumeData(initialResumeData);
           }
         } catch (err) {
-          console.error('Error loading resume data:', err);
+          console.error('Error loading initial resume data:', err);
         } finally {
           setIsSyncing(false);
           // Small delay to ensure state is updated before enabling auto-save
@@ -70,13 +80,14 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       } else {
         setResumeData(initialResumeData);
-        setFileId(null);
+        setResumes([]);
+        setActiveResumeId(null);
         setLastSynced(null);
         setIsFirstLoad(true);
       }
     };
 
-    loadData();
+    loadInitialData();
   }, [isAuthenticated, user?.access_token]);
 
   // Debounced auto-save to Google Drive
@@ -87,25 +98,108 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       saveTimeoutRef.current = setTimeout(async () => {
         setIsSyncing(true);
         try {
-          if (fileId) {
-            await updateResumeFile(user.access_token, fileId, resumeData);
+          if (activeResumeId) {
+            await updateResumeFile(user.access_token, activeResumeId, resumeData);
+            setLastSynced(new Date().toISOString());
           } else {
-            const newId = await createResumeFile(user.access_token, resumeData);
-            setFileId(newId);
+            // This case happens if the user starts typing before a file is created
+            // We'll create a "Default" resume
+            const newId = await createResumeFile(user.access_token, resumeData, 'Default');
+            setActiveResumeId(newId);
+            await refreshResumes();
+            setLastSynced(new Date().toISOString());
           }
-          setLastSynced(new Date().toISOString());
         } catch (err) {
           console.error('Error saving resume data:', err);
         } finally {
           setIsSyncing(false);
         }
-      }, 3000); // 3 second debounce to reduce API calls
+      }, 3000);
     }
 
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [resumeData, fileId, isAuthenticated, user?.access_token, isFirstLoad]);
+  }, [resumeData, activeResumeId, isAuthenticated, user?.access_token, isFirstLoad]);
+
+  const sanitizeResumeData = (content: any): ResumeData => {
+    return {
+      ...initialResumeData,
+      ...content,
+      personalInfo: { ...initialResumeData.personalInfo, ...(content.personalInfo || {}) },
+      additionalInfo: { ...initialResumeData.additionalInfo, ...(content.additionalInfo || {}) },
+      experience: content.experience || [],
+      education: content.education || [],
+      projects: content.projects || [],
+      skills: Array.isArray(content.skills) 
+        ? content.skills.map((s: any) => typeof s === 'string' ? { id: Math.random().toString(), category: 'General', items: [s] } : s)
+        : initialResumeData.skills,
+      certifications: content.certifications || [],
+    };
+  };
+
+  const switchResume = async (id: string) => {
+    if (!isAuthenticated || !user?.access_token) return;
+    
+    setIsSyncing(true);
+    setIsFirstLoad(true); // Disable auto-save during switch
+    try {
+      const content = await fetchResumeFileContent(user.access_token, id);
+      setResumeData(sanitizeResumeData(content));
+      setActiveResumeId(id);
+      setLastSynced(content.updatedAt || new Date().toISOString());
+    } catch (err) {
+      console.error('Error switching resume:', err);
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setIsFirstLoad(false), 500);
+    }
+  };
+
+  const createNewResume = async (role: string, copyFromId?: string) => {
+    if (!isAuthenticated || !user?.access_token) return;
+
+    setIsSyncing(true);
+    setIsFirstLoad(true);
+    try {
+      let newData = initialResumeData;
+      if (copyFromId) {
+        const sourceContent = await fetchResumeFileContent(user.access_token, copyFromId);
+        newData = { ...sanitizeResumeData(sourceContent), updatedAt: new Date().toISOString() };
+      }
+      
+      const newId = await createResumeFile(user.access_token, newData, role);
+      await refreshResumes();
+      setActiveResumeId(newId);
+      setResumeData(newData);
+      setLastSynced(newData.updatedAt);
+    } catch (err) {
+      console.error('Error creating new resume:', err);
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setIsFirstLoad(false), 500);
+    }
+  };
+
+  const deleteExistingResume = async (id: string) => {
+    if (!isAuthenticated || !user?.access_token) return;
+
+    try {
+      await deleteResumeFile(user.access_token, id);
+      const newList = await refreshResumes();
+      
+      if (activeResumeId === id) {
+        if (newList.length > 0) {
+          await switchResume(newList[0].id);
+        } else {
+          setActiveResumeId(null);
+          setResumeData(initialResumeData);
+        }
+      }
+    } catch (err) {
+      console.error('Error deleting resume:', err);
+    }
+  };
 
   const updateResumeData = (data: Partial<ResumeData>) => {
     setResumeData((prev) => ({ ...prev, ...data }));
@@ -118,6 +212,12 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         updateResumeData,
         isSyncing,
         lastSynced,
+        resumes,
+        activeResumeId,
+        switchResume,
+        createNewResume,
+        deleteExistingResume,
+        refreshResumes,
       }}
     >
       {children}

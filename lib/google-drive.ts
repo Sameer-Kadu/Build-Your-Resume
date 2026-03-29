@@ -3,7 +3,14 @@
  * Handles file searching, reading, and writing for 'resume-data.json'.
  */
 
-const RESUME_FILENAME = 'resume-data.json';
+const RESUME_FILE_PREFIX = 'resume-data';
+const RESUME_FILENAME_DEFAULT = 'resume-data.json';
+
+export interface ResumeMetadata {
+  id: string;
+  name: string; // The filename
+  role: string; // Extracted role from filename or 'Default'
+}
 
 export interface SkillGroup {
   id: string;
@@ -91,10 +98,10 @@ export const initialResumeData: ResumeData = {
 };
 
 /**
- * Search for the resume data file in Google Drive
+ * Search for all resume data files in Google Drive
  */
-export const findResumeFile = async (accessToken: string): Promise<string | null> => {
-  const query = `name = '${RESUME_FILENAME}' and trashed = false`;
+export const findResumeFiles = async (accessToken: string): Promise<ResumeMetadata[]> => {
+  const query = `name contains '${RESUME_FILE_PREFIX}' and trashed = false and mimeType = 'application/json'`;
   const response = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id, name)`,
     {
@@ -103,10 +110,23 @@ export const findResumeFile = async (accessToken: string): Promise<string | null
   );
 
   const data = await response.json();
-  if (data.files && data.files.length > 0) {
-    return data.files[0].id;
+  if (data.files) {
+    return data.files.map((file: any) => {
+      let role = 'Default';
+      if (file.name.includes('-')) {
+        // e.g., resume-data-SDE.json -> SDE
+        role = file.name.replace(`${RESUME_FILE_PREFIX}-`, '').replace('.json', '');
+        // Replace underscores back to spaces for UI display
+        role = role.replace(/_/g, ' ');
+      }
+      return {
+        id: file.id,
+        name: file.name,
+        role: role,
+      };
+    });
   }
-  return null;
+  return [];
 };
 
 /**
@@ -127,9 +147,10 @@ export const fetchResumeFileContent = async (accessToken: string, fileId: string
 /**
  * Create a new resume data file in Google Drive
  */
-export const createResumeFile = async (accessToken: string, data: ResumeData): Promise<string> => {
+export const createResumeFile = async (accessToken: string, data: ResumeData, role: string = ''): Promise<string> => {
+  const filename = role ? `${RESUME_FILE_PREFIX}-${role.replace(/\s+/g, '_')}.json` : RESUME_FILENAME_DEFAULT;
   const metadata = {
-    name: RESUME_FILENAME,
+    name: filename,
     mimeType: 'application/json',
   };
 
@@ -178,5 +199,23 @@ export const updateResumeFile = async (
 
   if (!response.ok) {
     throw new Error('Failed to update resume data on Google Drive');
+  }
+};
+
+/**
+ * Delete a resume file (move to trash)
+ */
+export const deleteResumeFile = async (accessToken: string, fileId: string): Promise<void> => {
+  const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ trashed: true }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to delete resume file');
   }
 };
