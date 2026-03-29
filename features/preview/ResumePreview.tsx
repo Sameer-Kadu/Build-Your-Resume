@@ -208,6 +208,12 @@ export default function ResumePreview() {
 
       <style jsx>{`
         @media print {
+          @page {
+            margin-top: 1in;
+          }
+          @page :first {
+            margin-top: 0in;
+          }
           .bg-white { box-shadow: none !important; border: none !important; p: 0 !important; }
         }
       `}</style>
