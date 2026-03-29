@@ -15,7 +15,15 @@ export default function Home() {
   const [view, setView] = useState<'dashboard' | 'editor'>('dashboard');
 
   const handlePrint = () => {
+    const originalTitle = document.title;
+    const userName = resumeData?.personalInfo?.fullName || 'User';
+    const role = resumes.find(r => r.id === activeResumeId)?.role || 'Resume';
+    const safeUserName = userName.replace(/\s+/g, '_');
+    const safeRole = role.replace(/\s+/g, '_');
+    
+    document.title = `${safeUserName}_${safeRole}_Resume`;
     window.print();
+    document.title = originalTitle;
   };
 
   const activeResume = resumes.find(r => r.id === activeResumeId);

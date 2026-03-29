@@ -37,11 +37,19 @@ export default function ApplyFasterModal({ resumeId, role, onClose }: ApplyFaste
     // 1. Ensure this resume is loaded in state
     await switchResume(resumeId);
     
-    // 2. Trigger Print (which is how the app generates PDF currently)
+    // 2. Set dynamic title for PDF filename
+    const originalTitle = document.title;
+    const userName = resumeData.personalInfo.fullName || 'User';
+    const safeUserName = userName.replace(/\s+/g, '_');
+    const safeRole = role.replace(/\s+/g, '_');
+    document.title = `${safeUserName}_${safeRole}_Resume`;
+
+    // 3. Trigger Print (which is how the app generates PDF currently)
     setMode('manual');
     window.print();
     
-    // 3. Open Platform
+    // 4. Restore original title and open Platform
+    document.title = originalTitle;
     setTimeout(() => {
       window.open(selectedPlatform.url, '_blank');
     }, 1000);
