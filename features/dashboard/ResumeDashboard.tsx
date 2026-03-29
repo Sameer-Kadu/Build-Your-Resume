@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useResume } from '@/context/resume-context';
-import { Plus, Trash2, Copy, FileText, ChevronRight, LayoutDashboard, X } from 'lucide-react';
+import { Plus, Trash2, Copy, FileText, ChevronRight, LayoutDashboard, X, Edit2 } from 'lucide-react';
 
 const PREDEFINED_ROLES = ['SDE', 'SDET', 'DevOps', 'AI/ML', 'Data Analyst'];
 
@@ -12,10 +12,12 @@ export default function ResumeDashboard() {
     activeResumeId, 
     switchResume, 
     createNewResume, 
-    deleteExistingResume 
+    deleteExistingResume,
+    updateResumeRole
   } = useResume();
   
   const [isAdding, setIsAdding] = useState(false);
+  const [isEditing, setIsEditing] = useState<{ id: string, role: string } | null>(null);
   const [newRole, setNewRole] = useState('');
   const [isCustomRole, setIsCustomRole] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -26,6 +28,13 @@ export default function ResumeDashboard() {
     setIsAdding(false);
     setNewRole('');
     setIsCustomRole(false);
+  };
+
+  const handleUpdateRole = async () => {
+    if (!isEditing || !newRole.trim()) return;
+    await updateResumeRole(isEditing.id, newRole.trim());
+    setIsEditing(null);
+    setNewRole('');
   };
 
   const handleDuplicate = async (id: string, role: string) => {
@@ -65,6 +74,16 @@ export default function ResumeDashboard() {
                   <FileText size={20} />
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => {
+                      setIsEditing({ id: resume.id, role: resume.role });
+                      setNewRole(resume.role);
+                    }}
+                    className="p-1.5 text-gray-400 hover:text-blue-600 transition"
+                    title="Rename Role"
+                  >
+                    <Edit2 size={14} />
+                  </button>
                   <button
                     onClick={() => handleDuplicate(resume.id, resume.role)}
                     className="p-1.5 text-gray-400 hover:text-blue-600 transition"
@@ -188,6 +207,48 @@ export default function ResumeDashboard() {
                 className="flex-1 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition disabled:opacity-50 shadow-md shadow-blue-200"
               >
                 Create Resume
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Role Modal */}
+      {isEditing && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in duration-200">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="font-bold text-lg text-gray-900 uppercase">Rename Resume Role</h3>
+              <button onClick={() => setIsEditing(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">New Role Name</label>
+                <input
+                  type="text"
+                  autoFocus
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  placeholder="e.g. Senior SDE"
+                  className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                />
+              </div>
+            </div>
+            <div className="p-6 bg-gray-50 rounded-b-2xl flex gap-3">
+              <button
+                onClick={() => setIsEditing(null)}
+                className="flex-1 py-2 text-gray-600 font-bold hover:bg-gray-200 rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateRole}
+                disabled={!newRole.trim() || newRole.trim() === isEditing.role}
+                className="flex-1 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition disabled:opacity-50 shadow-md shadow-blue-200"
+              >
+                Save Changes
               </button>
             </div>
           </div>

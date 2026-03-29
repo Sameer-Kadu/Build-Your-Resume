@@ -219,3 +219,25 @@ export const deleteResumeFile = async (accessToken: string, fileId: string): Pro
     throw new Error('Failed to delete resume file');
   }
 };
+
+/**
+ * Rename a resume file (updates the role in the filename)
+ */
+export const renameResumeFile = async (accessToken: string, fileId: string, newRole: string): Promise<string> => {
+  const newFilename = `${RESUME_FILE_PREFIX}-${newRole.replace(/\s+/g, '_')}.json`;
+  const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name: newFilename }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to rename resume file');
+  }
+
+  const data = await response.json();
+  return data.name;
+};

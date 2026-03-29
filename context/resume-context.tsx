@@ -11,6 +11,7 @@ import {
   createResumeFile,
   updateResumeFile,
   deleteResumeFile,
+  renameResumeFile,
 } from '@/lib/google-drive';
 
 interface ResumeContextType {
@@ -22,6 +23,7 @@ interface ResumeContextType {
   activeResumeId: string | null;
   switchResume: (id: string) => Promise<void>;
   createNewResume: (role: string, copyFromId?: string) => Promise<void>;
+  updateResumeRole: (id: string, newRole: string) => Promise<void>;
   deleteExistingResume: (id: string) => Promise<void>;
   refreshResumes: () => Promise<ResumeMetadata[]>;
 }
@@ -181,6 +183,17 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const updateResumeRole = async (id: string, newRole: string) => {
+    if (!isAuthenticated || !user?.access_token) return;
+
+    try {
+      await renameResumeFile(user.access_token, id, newRole);
+      await refreshResumes();
+    } catch (err) {
+      console.error('Error updating resume role:', err);
+    }
+  };
+
   const deleteExistingResume = async (id: string) => {
     if (!isAuthenticated || !user?.access_token) return;
 
@@ -216,6 +229,7 @@ export const ResumeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         activeResumeId,
         switchResume,
         createNewResume,
+        updateResumeRole,
         deleteExistingResume,
         refreshResumes,
       }}
