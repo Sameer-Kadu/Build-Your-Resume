@@ -13,9 +13,40 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const STORAGE_KEY = 'resume_builder_user';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Restore user from localStorage on mount
+  useEffect(() => {
+    const savedUser = localStorage.getItem(STORAGE_KEY);
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser) as GoogleUser;
+        // Basic validation: Check if we have an access token
+        if (parsedUser.access_token) {
+          setUser(parsedUser);
+          
+          // Background check to see if token is still valid
+          fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${parsedUser.access_token}` },
+          }).then(res => {
+            if (!res.ok) {
+              // Token expired or invalid
+              console.warn('Persisted session token expired');
+              logout();
+            }
+          }).catch(() => {
+            // Network error or other issue, keep the user for now
+          });
+        }
+      } catch (e) {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     // Initialize Google API
@@ -33,12 +64,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               });
               const userData = await res.json();
               
-              setUser({
+              const newUser: GoogleUser = {
                 name: userData.name,
                 email: userData.email,
                 picture: userData.picture,
                 access_token: tokenResponse.access_token,
-              });
+              };
+              
+              setUser(newUser);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
             } catch (err) {
               console.error('Failed to fetch user profile', err);
             } finally {
@@ -65,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logoutGoogle(user.access_token);
     }
     setUser(null);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   return (
