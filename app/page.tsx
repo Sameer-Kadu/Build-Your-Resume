@@ -11,7 +11,7 @@ import { useState } from 'react';
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
-  const { isSyncing, lastSynced, resumes, activeResumeId } = useResume();
+  const { resumeData, isSyncing, lastSynced, resumes, activeResumeId } = useResume();
   const [view, setView] = useState<'dashboard' | 'editor'>('dashboard');
 
   const handlePrint = () => {
@@ -91,7 +91,9 @@ export default function Home() {
         ) : (
           <>
             {view === 'dashboard' ? (
-              <ResumeDashboard />
+              <div className="print:hidden">
+                <ResumeDashboard />
+              </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 print:hidden">

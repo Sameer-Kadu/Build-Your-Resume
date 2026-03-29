@@ -46,7 +46,7 @@ export default function ResumePreview() {
   }
 
   return (
-    <div className="bg-white shadow-lg border border-gray-200 p-[0.5in] md:p-[0.75in] font-calibri text-[#000000] min-h-[11in] w-full max-w-[8.5in] mx-auto overflow-hidden text-[11pt] leading-snug">
+    <div className="resume-preview-container bg-white shadow-lg border border-gray-200 p-[0.5in] md:p-[0.75in] font-calibri text-[#000000] min-h-[11in] w-full max-w-[8.5in] mx-auto overflow-hidden text-[11pt] leading-snug">
       {/* Header - Left Aligned like the PDF */}
       <header className="mb-6">
         <h1 className="text-[24pt] font-bold text-gray-900 mb-2">{personalInfo.fullName || 'Your Name'}</h1>
@@ -209,12 +209,69 @@ export default function ResumePreview() {
       <style jsx>{`
         @media print {
           @page {
-            margin-top: 1in;
+            margin: 0;
+            size: auto;
+          }
+          
+          /* Hide everything by default */
+          :global(body > *:not(main)) {
+            display: none !important;
+          }
+          
+          :global(main > *:not(section)) {
+            display: none !important;
+          }
+
+          /* Hide elements that are not the preview or its container */
+          :global(.print\\:hidden) {
+            display: none !important;
+          }
+
+          /* Target the specific resume container */
+          .resume-preview-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 8.5in !important;
+            min-height: 11in !important;
+            margin: 0 !important;
+            padding: 0.5in !important;
+            box-shadow: none !important;
+            border: none !important;
+            visibility: visible !important;
+          }
+
+          /* Ensure all parent containers don't interfere */
+          :global(body), :global(html), :global(main), :global(section), :global(.grid) {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            display: block !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+
+          /* Only show the column containing the preview in the editor view */
+          :global(.lg\\:sticky) {
+            position: static !important;
+            width: 100% !important;
+          }
+          
+          /* Manage page margins for multi-page resumes */
+          .resume-preview-container {
+            margin-top: 0 !important;
+          }
+          
+          /* Add a top margin to subsequent pages if they exist */
+          @page {
+            margin-top: 0.5in;
+            margin-bottom: 0.5in;
           }
           @page :first {
             margin-top: 0in;
           }
-          .bg-white { box-shadow: none !important; border: none !important; p: 0 !important; }
         }
       `}</style>
     </div>
