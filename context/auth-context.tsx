@@ -19,27 +19,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Function to fetch user info and update state
+  const fetchAndSetUser = async (accessToken: string) => {
+    try {
+      const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      
+      if (!res.ok) throw new Error('Failed to fetch user info');
+      
+      const userData = await res.json();
+      
+      // Google usually returns 'picture', but we add fallbacks just in case
+      const picture = userData.picture || userData.avatar || userData.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name || 'User')}&background=random`;
+
+      const newUser: GoogleUser = {
+        name: userData.name || 'Google User',
+        email: userData.email || '',
+        picture: picture,
+        access_token: accessToken,
+      };
+
+      setUser(newUser);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
+      return newUser;
+    } catch (err) {
+      console.error('Error fetching user info:', err);
+      return null;
+    }
+  };
+
   // Restore user from localStorage on mount
   useEffect(() => {
     const savedUser = localStorage.getItem(STORAGE_KEY);
     if (savedUser) {
       try {
         const parsedUser = JSON.parse(savedUser) as GoogleUser;
-        // Basic validation: Check if we have an access token
         if (parsedUser.access_token) {
           setUser(parsedUser);
           
-          // Background check to see if token is still valid
-          fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: { Authorization: `Bearer ${parsedUser.access_token}` },
-          }).then(res => {
-            if (!res.ok) {
-              // Token expired or invalid
-              console.warn('Persisted session token expired');
+          // Background check to see if token is still valid AND refresh info
+          fetchAndSetUser(parsedUser.access_token).then(updatedUser => {
+            if (!updatedUser) {
+              console.warn('Persisted session token expired or invalid');
               logout();
             }
-          }).catch(() => {
-            // Network error or other issue, keep the user for now
           });
         }
       } catch (e) {
@@ -53,31 +77,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const init = async () => {
       try {
         await loadGoogleScript();
+
+        // Check for access_token in URL hash (handles mobile redirects)
+        if (typeof window !== 'undefined' && window.location.hash) {
+          const params = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = params.get('access_token');
+
+          if (accessToken) {
+            console.log('Mobile/Redirect: Access token found in URL hash');
+            setLoading(true);
+            const success = await fetchAndSetUser(accessToken);
+            if (success) {
+              // Clear hash from URL
+              window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+            }
+            setLoading(false);
+          }
+        }
         
         initTokenClient(async (tokenResponse: any) => {
           if (tokenResponse && tokenResponse.access_token) {
             setLoading(true);
-            // Fetch user profile info using access token
-            try {
-              const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-              });
-              const userData = await res.json();
-              
-              const newUser: GoogleUser = {
-                name: userData.name,
-                email: userData.email,
-                picture: userData.picture,
-                access_token: tokenResponse.access_token,
-              };
-              
-              setUser(newUser);
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
-            } catch (err) {
-              console.error('Failed to fetch user profile', err);
-            } finally {
-              setLoading(false);
-            }
+            await fetchAndSetUser(tokenResponse.access_token);
+            setLoading(false);
           }
         });
       } catch (err) {
