@@ -59,7 +59,8 @@ export default function ResumePreview() {
 
         try {
           // Add a small delay to ensure rendering is complete
-          await new Promise((resolve) => setTimeout(resolve, 800));
+          await new Promise(resolve => setTimeout(resolve, 800));
+          // @ts-ignore - html2pdf options type is overly restrictive for margins
           await html2pdf().set(opt).from(element).save();
         } catch (error) {
           console.error("PDF generation error:", error);
