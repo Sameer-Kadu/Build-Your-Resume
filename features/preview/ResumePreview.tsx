@@ -1,47 +1,68 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef } from 'react';
-import { useResume } from '@/context/resume-context';
+import React, { useEffect, useRef } from "react";
+import { useResume } from "@/context/resume-context";
 
 export default function ResumePreview() {
-  const { resumeData, isExporting, triggerExport, resumes, activeResumeId } = useResume();
-  const { personalInfo, summary, skills, experience, education, projects, certifications, additionalInfo } = resumeData;
+  const { resumeData, isExporting, triggerExport, resumes, activeResumeId } =
+    useResume();
+  const {
+    personalInfo,
+    summary,
+    skills,
+    experience,
+    education,
+    projects,
+    certifications,
+    additionalInfo,
+  } = resumeData;
   const resumeRef = useRef<HTMLDivElement>(null);
   const processingExport = useRef(false);
 
   useEffect(() => {
     if (isExporting && resumeRef.current && !processingExport.current) {
       processingExport.current = true;
-      
+
       const exportToPDF = async () => {
         // Dynamic import to avoid SSR issues
-        const html2pdf = (await import('html2pdf.js')).default;
-        
+        const html2pdf = (await import("html2pdf.js")).default;
+
         const element = resumeRef.current;
         if (!element) return;
 
-        const role = resumes.find(r => r.id === activeResumeId)?.role || 'Resume';
-        const fileName = `${personalInfo.fullName || 'User'}_${role}_Resume.pdf`.replace(/\s+/g, '_');
-        
+        const role =
+          resumes.find((r) => r.id === activeResumeId)?.role || "Resume";
+        const fileName =
+          `${personalInfo.fullName || "User"}_${role}_Resume.pdf`.replace(
+            /\s+/g,
+            "_",
+          );
+
         const opt = {
-          margin: 0,
+          margin: [0.5, 0, 0.5, 0],
           filename: fileName,
-          image: { type: 'jpeg' as const, quality: 0.98 },
-          html2canvas: { 
-            scale: 2, 
+          image: { type: "jpeg" as const, quality: 0.98 },
+          enableLinks: true,
+          pagebreak: { avoid: [".avoid-break"] },
+          html2canvas: {
+            scale: 2,
             useCORS: true,
             letterRendering: true,
-            logging: false
+            logging: false,
           },
-          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const }
+          jsPDF: {
+            unit: "in",
+            format: "letter",
+            orientation: "portrait" as const,
+          },
         };
 
         try {
           // Add a small delay to ensure rendering is complete
-          await new Promise(resolve => setTimeout(resolve, 800));
+          await new Promise((resolve) => setTimeout(resolve, 800));
           await html2pdf().set(opt).from(element).save();
         } catch (error) {
-          console.error('PDF generation error:', error);
+          console.error("PDF generation error:", error);
         } finally {
           triggerExport(false);
           processingExport.current = false;
@@ -52,12 +73,12 @@ export default function ResumePreview() {
     }
   }, [isExporting, triggerExport]); // Only depend on isExporting and triggerExport
 
-  const hasContent = 
-    personalInfo.fullName || 
-    summary || 
-    skills.length > 0 || 
-    experience.length > 0 || 
-    education.length > 0 || 
+  const hasContent =
+    personalInfo.fullName ||
+    summary ||
+    skills.length > 0 ||
+    experience.length > 0 ||
+    education.length > 0 ||
     projects.length > 0;
 
   /**
@@ -67,16 +88,20 @@ export default function ResumePreview() {
    */
   const renderFormattedText = (text: string) => {
     if (!text) return null;
-    
+
     // Use regex to split and map parts
     const parts = text.split(/(\*\*.*?\*\*|==.*?==)/g);
-    
+
     return parts.map((part, index) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
+      if (part.startsWith("**") && part.endsWith("**")) {
         return <strong key={index}>{part.slice(2, -2)}</strong>;
       }
-      if (part.startsWith('==') && part.endsWith('==')) {
-        return <mark key={index} className="bg-yellow-200 px-0.5 rounded">{part.slice(2, -2)}</mark>;
+      if (part.startsWith("==") && part.endsWith("==")) {
+        return (
+          <mark key={index} className="bg-yellow-200 px-0.5 rounded">
+            {part.slice(2, -2)}
+          </mark>
+        );
       }
       return part;
     });
@@ -85,34 +110,60 @@ export default function ResumePreview() {
   if (!hasContent) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 border-2 border-dashed border-gray-100 rounded-xl font-calibri">
-        <p className="text-center italic text-sm">Start filling out the form to see your resume preview in your style</p>
+        <p className="text-center italic text-sm">
+          Start filling out the form to see your resume preview in your style
+        </p>
       </div>
     );
   }
 
   return (
-    <div ref={resumeRef} className="resume-preview-container bg-white shadow-lg border border-gray-200 p-[0.5in] md:p-[0.75in] font-calibri text-[#000000] min-h-[11in] w-full max-w-[8.5in] mx-auto overflow-hidden text-[11pt] leading-snug">
+    <div
+      ref={resumeRef}
+      className={`resume-preview-container bg-white shadow-lg border border-gray-200 ${isExporting ? "px-[0.5in] md:px-[0.75in] pt-0 pb-4" : "p-[0.5in] md:p-[0.75in]"} font-calibri text-[#000000] min-h-[11in] w-full max-w-[8.5in] mx-auto text-[11pt] leading-snug`}
+    >
       {/* Header - Left Aligned like the PDF */}
       <header className="mb-6">
-        <h1 className="text-[24pt] font-bold text-gray-900 mb-2">{personalInfo.fullName || 'Your Name'}</h1>
+        <h1 className="text-[24pt] font-bold text-gray-900 mb-2">
+          {personalInfo.fullName || "Your Name"}
+        </h1>
         <div className="text-[10pt] text-gray-800 space-y-0.5">
           {personalInfo.location && <div>{personalInfo.location}</div>}
           <div className="flex gap-2">
-            {personalInfo.email && <a href={`mailto:${personalInfo.email}`} className="text-blue-600 hover:underline">{personalInfo.email}</a>}
+            {personalInfo.email && (
+              <a
+                href={`mailto:${personalInfo.email}`}
+                className="text-blue-600 hover:underline"
+              >
+                {personalInfo.email}
+              </a>
+            )}
             {personalInfo.phone && <span>| {personalInfo.phone}</span>}
           </div>
           <div className="flex gap-2 text-blue-600">
-            {personalInfo.website && <a href={personalInfo.website} className="hover:underline">Portfolio</a>}
+            {personalInfo.website && (
+              <a href={personalInfo.website} className="hover:underline">
+                Portfolio
+              </a>
+            )}
             {personalInfo.linkedin && (
               <>
-                {personalInfo.website && <span className="text-gray-400">|</span>}
-                <a href={personalInfo.linkedin} className="hover:underline">LinkedIn</a>
+                {personalInfo.website && (
+                  <span className="text-gray-400">|</span>
+                )}
+                <a href={personalInfo.linkedin} className="hover:underline">
+                  LinkedIn
+                </a>
               </>
             )}
             {personalInfo.github && (
               <>
-                {(personalInfo.website || personalInfo.linkedin) && <span className="text-gray-400">|</span>}
-                <a href={personalInfo.github} className="hover:underline">GitHub</a>
+                {(personalInfo.website || personalInfo.linkedin) && (
+                  <span className="text-gray-400">|</span>
+                )}
+                <a href={personalInfo.github} className="hover:underline">
+                  GitHub
+                </a>
               </>
             )}
           </div>
@@ -121,27 +172,38 @@ export default function ResumePreview() {
 
       {/* Professional Summary */}
       {summary && (
-        <section className="mb-5">
-          <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">Professional Summary</h2>
-          <p className="text-justify leading-relaxed">{renderFormattedText(summary)}</p>
+        <section className="mb-5 avoid-break">
+          <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">
+            Professional Summary
+          </h2>
+          <p className="text-justify leading-relaxed">
+            {renderFormattedText(summary)}
+          </p>
         </section>
       )}
 
       {/* Core Technical Skills */}
       {skills.length > 0 && (
-        <section className="mb-5">
-          <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">Core Technical Skills</h2>
+        <section className="mb-5 avoid-break">
+          <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">
+            Core Technical Skills
+          </h2>
           <div className="space-y-1">
             {skills.map((group, idx) => {
               // Handle old data structure (string[]) vs new (SkillGroup[])
-              if (typeof group === 'string') {
-                return <p key={idx}><span className="font-bold">Skill:</span> {group}</p>;
+              if (typeof group === "string") {
+                return (
+                  <p key={idx}>
+                    <span className="font-bold">Skill:</span> {group}
+                  </p>
+                );
               }
-              
+
               if (group.items && group.items.length > 0) {
                 return (
                   <p key={group.id || idx}>
-                    <span className="font-bold">{group.category}:</span> {group.items.join(', ')}
+                    <span className="font-bold">{group.category}:</span>{" "}
+                    {group.items.join(", ")}
                   </p>
                 );
               }
@@ -154,20 +216,24 @@ export default function ResumePreview() {
       {/* Professional Experience */}
       {experience.length > 0 && (
         <section className="mb-5">
-          <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">Professional Experience</h2>
+          <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">
+            Professional Experience
+          </h2>
           <div className="space-y-4">
             {experience.map((exp) => (
-              <div key={exp.id}>
+              <div key={exp.id} className="avoid-break">
                 <div className="font-bold text-[12pt]">{exp.role}</div>
                 <div className="flex justify-between items-baseline mb-2">
                   <span className="font-bold">{exp.company}</span>
                   <span className="text-[10pt] italic">
-                    {exp.startDate} – {exp.current ? 'Present' : exp.endDate}
+                    {exp.startDate} – {exp.current ? "Present" : exp.endDate}
                   </span>
                 </div>
                 <ul className="list-disc list-outside ml-5 space-y-1">
                   {exp.description.map((bullet, idx) => (
-                    <li key={idx} className="pl-1">{renderFormattedText(bullet)}</li>
+                    <li key={idx} className="pl-1">
+                      {renderFormattedText(bullet)}
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -179,23 +245,40 @@ export default function ResumePreview() {
       {/* Projects */}
       {projects.length > 0 && (
         <section className="mb-5">
-          <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">Projects</h2>
+          <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">
+            Projects
+          </h2>
           <div className="space-y-4">
             {projects.map((project) => (
-              <div key={project.id}>
+              <div key={project.id} className="avoid-break">
                 <div className="font-bold text-[12pt]">{project.name}</div>
-                {project.role && <div className="italic text-[10pt] mb-1">Role: {project.role}</div>}
+                {project.role && (
+                  <div className="italic text-[10pt] mb-1">
+                    Role: {project.role}
+                  </div>
+                )}
                 <ul className="list-disc list-outside ml-5 space-y-1">
                   {project.description.map((bullet, idx) => (
-                    <li key={idx} className="pl-1">{renderFormattedText(bullet)}</li>
+                    <li key={idx} className="pl-1">
+                      {renderFormattedText(bullet)}
+                    </li>
                   ))}
                 </ul>
                 <div className="text-[10pt] mt-1">
-                  <span className="font-bold">Tech Stack:</span> {project.technologies.join(', ')}
+                  <span className="font-bold">Tech Stack:</span>{" "}
+                  {project.technologies.join(", ")}
                 </div>
                 <div className="flex gap-3 text-[10pt] text-blue-600 mt-0.5">
-                  {project.github && <a href={project.github} className="hover:underline">GitHub</a>}
-                  {project.liveDemo && <a href={project.liveDemo} className="hover:underline">Live Demo</a>}
+                  {project.github && (
+                    <a href={project.github} className="hover:underline">
+                      GitHub
+                    </a>
+                  )}
+                  {project.liveDemo && (
+                    <a href={project.liveDemo} className="hover:underline">
+                      Live Demo
+                    </a>
+                  )}
                 </div>
               </div>
             ))}
@@ -206,15 +289,23 @@ export default function ResumePreview() {
       {/* Education */}
       {education.length > 0 && (
         <section className="mb-5">
-          <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">Education</h2>
+          <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">
+            Education
+          </h2>
           <div className="space-y-3">
             {education.map((edu) => (
-              <div key={edu.id}>
+              <div key={edu.id} className="avoid-break">
                 <div className="flex justify-between items-baseline">
-                  <span className="font-bold">{edu.degree} {edu.field ? `in ${edu.field}` : ''}</span>
-                  <span className="text-[10pt] italic">{edu.startDate} – {edu.endDate}</span>
+                  <span className="font-bold">
+                    {edu.degree} {edu.field ? `in ${edu.field}` : ""}
+                  </span>
+                  <span className="text-[10pt] italic">
+                    {edu.startDate} – {edu.endDate}
+                  </span>
                 </div>
-                <div className="text-[10pt] italic">{edu.school}, {edu.location}</div>
+                <div className="text-[10pt] italic">
+                  {edu.school}, {edu.location}
+                </div>
               </div>
             ))}
           </div>
@@ -223,11 +314,15 @@ export default function ResumePreview() {
 
       {/* Certifications */}
       {certifications && certifications.length > 0 && (
-        <section className="mb-5">
-          <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">Certifications</h2>
+        <section className="mb-5 avoid-break">
+          <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">
+            Certifications
+          </h2>
           <ul className="list-disc list-outside ml-5 space-y-0.5">
             {certifications.map((cert, idx) => (
-              <li key={idx} className="pl-1">{cert}</li>
+              <li key={idx} className="pl-1">
+                {cert}
+              </li>
             ))}
           </ul>
         </section>
@@ -235,34 +330,54 @@ export default function ResumePreview() {
 
       {/* Additional Information */}
       {additionalInfo && (
-        <section>
-          <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">Additional Information</h2>
+        <section className="avoid-break">
+          <h2 className="text-[14pt] font-bold border-b border-gray-300 pb-0.5 mb-2">
+            Additional Information
+          </h2>
           <div className="space-y-0.5 text-[10.5pt]">
-            {additionalInfo.languages && additionalInfo.languages.length > 0 && (
-              <p><span className="font-bold">Languages:</span> {additionalInfo.languages.join(', ')}</p>
-            )}
+            {additionalInfo.languages &&
+              additionalInfo.languages.length > 0 && (
+                <p>
+                  <span className="font-bold">Languages:</span>{" "}
+                  {additionalInfo.languages.join(", ")}
+                </p>
+              )}
             {additionalInfo.workAuthorization && (
-              <p><span className="font-bold">Work Authorization:</span> {additionalInfo.workAuthorization}</p>
+              <p>
+                <span className="font-bold">Work Authorization:</span>{" "}
+                {additionalInfo.workAuthorization}
+              </p>
             )}
             {additionalInfo.noticePeriod && (
-              <p><span className="font-bold">Notice Period:</span> {additionalInfo.noticePeriod}</p>
+              <p>
+                <span className="font-bold">Notice Period:</span>{" "}
+                {additionalInfo.noticePeriod}
+              </p>
             )}
           </div>
         </section>
       )}
 
+      {/* Spacer to ensure the very last line is fully captured and not clipped */}
+      <div className="h-4 w-full"></div>
+
       <style jsx>{`
+        .avoid-break {
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+
         @media print {
           @page {
             margin: 0;
             size: auto;
           }
-          
+
           /* Hide everything by default */
           :global(body > *:not(main)) {
             display: none !important;
           }
-          
+
           :global(main > *:not(section)) {
             display: none !important;
           }
@@ -287,7 +402,11 @@ export default function ResumePreview() {
           }
 
           /* Ensure all parent containers don't interfere */
-          :global(body), :global(html), :global(main), :global(section), :global(.grid) {
+          :global(body),
+          :global(html),
+          :global(main),
+          :global(section),
+          :global(.grid) {
             background: white !important;
             margin: 0 !important;
             padding: 0 !important;
@@ -303,12 +422,12 @@ export default function ResumePreview() {
             position: static !important;
             width: 100% !important;
           }
-          
+
           /* Manage page margins for multi-page resumes */
           .resume-preview-container {
             margin-top: 0 !important;
           }
-          
+
           /* Add a top margin to subsequent pages if they exist */
           @page {
             margin-top: 0.5in;
